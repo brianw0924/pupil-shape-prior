@@ -8,11 +8,11 @@ Size_X = 192
 Size_Y = 144
 os_server = OS_Server_Set.os_server_num
 curr = OS_Server_Set.current_operating_on
-batchsize = 2
+batchsize = 32
 shuffle_buffer = 16000
-total_epoch = 10
+total_epoch = 100
 initial_learning_rate = 1e-4
-final_learning_rate = 1e-6
+final_learning_rate = 1e-5
 rate_decay = 0.95
 
 ratio = '400'
@@ -26,11 +26,13 @@ tf_size = [6554, 504, 9799, 2655, 2831, 2135, 4400, 4890, 630, 840, 655, 524, 49
 
 tf_size = tf_size+tf_size
 
-def tf_path_splitted(value):
+def tf_path_splitted(value): # value: cross_val_num
     folder_list = ['train000.tfrecords', 'train001.tfrecords', 'train002.tfrecords', 'train003.tfrecords', 'train004.tfrecords', 'train005.tfrecords',
                    'train006.tfrecords', 'train007.tfrecords', 'train008.tfrecords', 'train009.tfrecords', 'train010.tfrecords', 'train011.tfrecords',
                    'train012.tfrecords', 'train013.tfrecords', 'train014.tfrecords', 'train015.tfrecords', 'train016.tfrecords', 'train017.tfrecords',
                    'train018.tfrecords', 'train019.tfrecords', 'train020.tfrecords', 'train021.tfrecords', 'train022.tfrecords', 'train023.tfrecords']
+    # folder_list & tr_size 都複製一倍
+    # i.e. [train0, train1, train2, ..., train23, train0, train1, train2, ..., train23]
     folder_list_double = folder_list + folder_list
     list_selected = folder_list_double[value + 1:value + len(folder_list)]
     size_selected = tf_size[value+1: value + len(folder_list)]
@@ -45,10 +47,11 @@ def tf_path_splitted(value):
     for ii in range(10):
         list_selected_ten += list_selected
 
+    # list_selected_ten: 00train0**.tfrecord, 01train0**.tfrecord, ..., 09train0**.tfrecord
     for jj in range(10):
         for ii in range(len(list_selected)):
             list_selected_ten[jj*len(list_selected)+ii] = tfFolderPath_splitted + str(jj).zfill(2) +list_selected_ten[jj*len(list_selected)+ii]
-
+    
     return [list_selected_ten, size_]
 
 def find_latest_model_name(name_load_model, value):
