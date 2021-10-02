@@ -65,6 +65,9 @@ class UNet4f32ch_sigmoid(nn.Module):
 
         conv_1 = self.dconv_up1(cat1)
         ch_2 = self.conv_last(conv_1)
-        out = self.sigmoid(ch_2)
 
-        return out
+        return ch_2
+
+
+        # out = self.sigmoid(ch_2)
+        # return out
