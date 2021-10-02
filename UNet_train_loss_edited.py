@@ -43,6 +43,7 @@ def main():
     warnings.filterwarnings("ignore")
 
     device = torch.device("cuda" if use_cuda else "cpu")
+    print(f'Device: {device}')
     [tf_path, image_num] = parameters.tf_path_splitted(cross_val_num)
 
     batchsize = parameters.batchsize
@@ -73,13 +74,13 @@ def main():
 
     print(parameters.C_GREEN + nf_nch + ', ' + str(cross_val_num).zfill(3) + ' : ' + str(image_num) + ' images' + parameters.C_END)
 
-    name_load_model = './trained_model/UNet/'
-    try:
-        load_saved_model_name = parameters.find_latest_model_name(name_load_model, cross_val_num)
-        model.load_state_dict(torch.load(load_saved_model_name))
-        print('Model Loaded')
-    except:
-        print('Falied To Load Trained Model')
+    # name_load_model = './trained_model/UNet/'
+    # try:
+    #     load_saved_model_name = parameters.find_latest_model_name(name_load_model, cross_val_num)
+    #     model.load_state_dict(torch.load(load_saved_model_name))
+    #     print('Model Loaded')
+    # except:
+    #     print('Falied To Load Trained Model')
 
     model.to(device)
     model.train()
@@ -109,21 +110,21 @@ def main():
         label_2ch = tf.concat([label, label_inv], axis=1)
         image = image.numpy().astype(np.float32)/255
         label_2ch = label_2ch.numpy().astype(np.float32)/255
-        label = label.numpy().astype(np.float32) / 255
+        label = label.numpy().astype(np.float32)/255 # now all pixel = 0 or 1
         label = torch.from_numpy(label)
         label = label.to(device)
 
-        image = torch.from_numpy(image)
-        label_2ch = torch.from_numpy(label_2ch)
+        image = torch.from_numpy(image) # shape: (batch size,1,144,192)
+        label_2ch = torch.from_numpy(label_2ch) # shape: (batch size,2,144,192)
 
         image, label_2ch = image.to(device), label_2ch.to(device)
-        output = model(image)
+        output = model(image) # shape: (1,1,144,192)
         output = nn.functional.sigmoid(output)
 
         # Shape Prior Loss
         #########################################
         output_bk = output.clone().detach()
-        bat_len = len(output_bk[:, 0, 0, 0])
+        bat_len = len(output_bk[:, 0, 0, 0]) # batch len
         output_bk = output_bk.cpu().numpy()
         output_bk[output_bk < 0.5] = 0
         output_bk[output_bk >= 0.5] = 1
@@ -201,10 +202,13 @@ def main():
         #########################################
         loss = F.binary_cross_entropy(output, label)+ loss_t2 / (num2+1e-10) * 1e-3 # BCE loss
 
+        if iter%1000==0:
+            print(f'Loss at iteration {iter}: {loss.item()} | {num2}: num2')
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        avg_cost += float(loss) / total_batch
+        avg_cost += float(loss.item()) / total_batch
         current_batch = current_batch + 1
 
         del image, label, label_2ch, label_inv, output, loss, loss_t2, output_bk
@@ -227,6 +231,7 @@ def main():
                 current_epoch, iter, avg_cost, parameters.calc_lr(parameters.initial_learning_rate, iter, global_step)))
             avg_cost = 0
 
+            # save model every 10 epcoh
             if current_epoch % (parameters.total_epoch / 10) == 0:
                 savename = trained_model_path+'my_test_model_' + '%08d' % (iter) + 'iters.pt'
                 torch.save(model.state_dict(), savename)
