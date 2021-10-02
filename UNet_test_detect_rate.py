@@ -83,7 +83,7 @@ def main():
     result_path = './result_files/'
     if not os.path.exists(result_path):
         os.mkdir(result_path)
-    txt_list = os.listdir(GTtxt_list)
+    txt_list = sorted(os.listdir(GTtxt_list))
     cnt = 0
     rangefiles = range(len(txt_list))  # num_sequence
     numfile = 0
@@ -92,17 +92,20 @@ def main():
     print(str(numfile) + ' files')
     prev_x = 0
     prev_y = 0
+
     for i in rangefiles:
 
         if i != cross_val_num:
             continue
 
         sub_folder_name = txt_list[i].replace(".txt", "")
+        print(f'Now inference: {sub_folder_name}')
 
         txtFile = open(GTtxt_list + '/' + txt_list[i], 'r')
         line = txtFile.readline()
         resultTxt = open(result_path + txt_list[i], 'w')
-        resultTxt.write(line)
+        resultTxt.write(line) # 0 Image_num X Y
+
         for j in range(len(os.listdir(image_path + sub_folder_name))):
             cnt = cnt + 1
             ## print expected time required
@@ -158,13 +161,15 @@ def main():
                     prev_y = max_indices[2]*2
                 else:
                     txt = line.split(" ")[0] + ' ' + line.split(" ")[1] + ' ' + str(prev_x) + ' ' + str(prev_y) + '\n'
+            
+            # Center
             resultTxt.write(txt)
 
-            savename = result_path + file_name
-            cv2.imwrite(savename, (output_bk[0]*255+inputImg_BK)/2)
+            # Segmentation Image
+            cv2.imwrite(os.path.join('result_image',f'{line.split(" ")[1].zfill(10)}.png'), (output_bk[0]*255+inputImg_BK)/2)
 
             if cnt % 500 == 0:
-                print(cnt)
+                print(f'{cnt} Images processed')
         resultTxt.close()
         sys.stdout.flush()
     now = time.localtime()
